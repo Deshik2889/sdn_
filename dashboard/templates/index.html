@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SDN CONTROL CENTER</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+<header class="header">
+    <h1>SDN Control Center</h1>
+    <div class="header-actions">
+    <button class="btn" onclick="setMode('baseline')">Baseline</button>
+    <button class="btn" onclick="setMode('proposed')">Proposed</button>
+        <button id="startBtn" class="btn primary" onclick="startTraffic()">Start Traffic</button>
+        <button class="btn warn" onclick="fetch('/api/congest')">Congest</button>
+        <button id="stopBtn" class="btn" onclick="stopTraffic()">Stop</button>
+        <button class="btn" onclick="exportCharts()">Export Charts</button>
+    </div>
+</header>
+
+<main class="main">
+    <aside class="sidebar">
+        <div id="status" class="status safe">SAFE | BASELINE</div>
+        <div class="card">
+            <h3>Quick Controls</h3>
+            <p>Use the buttons above to control experiments.</p>
+        </div>
+    </aside>
+
+    <section class="content">
+        <div class="chart-row">
+            <div class="chart-card"><canvas id="throughputChart"></canvas></div>
+            <div class="chart-card"><canvas id="latencyChart"></canvas></div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-card"><canvas id="lossChart"></canvas></div>
+            <div class="chart-card"><canvas id="ewmaChart"></canvas></div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-card"><canvas id="flowsChart"></canvas></div>
+            <div class="chart-card"><canvas id="topPortsChart"></canvas></div>
+        </div>
+    </section>
+</main>
+
+<script src="/static/charts.js"></script>
+</body>
+</html>

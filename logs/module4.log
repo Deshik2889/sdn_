@@ -1,0 +1,17 @@
+=== Module 4: Congestion Detection Started ===
+Traceback (most recent call last):
+  File "/home/deshik/SDN-Predictive-Congestion-Control/controller/monitoring/congestion_detection.py", line 113, in <module>
+    detect_congestion()
+  File "/home/deshik/SDN-Predictive-Congestion-Control/controller/monitoring/congestion_detection.py", line 36, in detect_congestion
+    stats = get_port_stats()
+  File "/home/deshik/SDN-Predictive-Congestion-Control/controller/monitoring/congestion_detection.py", line 30, in get_port_stats
+    return response.json()["statistics"]
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 900, in json
+    return complexjson.loads(self.text, **kwargs)
+  File "/usr/lib/python3.10/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib/python3.10/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib/python3.10/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
