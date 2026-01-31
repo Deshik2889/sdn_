@@ -31,6 +31,11 @@ body{
 .btn.warn{background:linear-gradient(90deg,#ff8a0033,#ffbf5533);border-color:var(--warn);color:#fff}
 .btn:hover{transform:translateY(-2px)}
 
+/* Active/selected mode button */
+.btn.active{background:linear-gradient(90deg,#00b3ff33,#0099ff33);border-color:#00d7ff;box-shadow:0 6px 18px rgba(0,167,255,0.08);transform:translateY(-2px)}
+.btn:focus{outline:none}
+.btn.mode-hover:hover{background:linear-gradient(90deg,#003e6633,#005b8c33)}
+
 .main{display:flex;gap:20px;padding:20px}
 .sidebar{width:260px}
 .content{flex:1}

@@ -12,10 +12,10 @@
 <header class="header">
     <h1>SDN Control Center</h1>
     <div class="header-actions">
-    <button class="btn" onclick="setMode('baseline')">Baseline</button>
-    <button class="btn" onclick="setMode('proposed')">Proposed</button>
+    <button id="baselineBtn" class="btn" onclick="setMode('baseline')">Baseline</button>
+    <button id="proposedBtn" class="btn" onclick="setMode('proposed')">Proposed</button>
         <button id="startBtn" class="btn primary" onclick="startTraffic()">Start Traffic</button>
-        <button class="btn warn" onclick="fetch('/api/congest')">Congest</button>
+        <button class="btn warn" onclick="congest()">Congest</button>
         <button id="stopBtn" class="btn" onclick="stopTraffic()">Stop</button>
         <button class="btn" onclick="exportCharts()">Export Charts</button>
     </div>
@@ -42,13 +42,16 @@
             </div>
         </div>
         <div class="chart-row">
-            <div class="chart-card"><canvas id="throughputChart"></canvas></div>
-            <div class="chart-card"><canvas id="latencyChart"></canvas></div>
-        </div>
-
-        <div class="chart-row">
-            <div class="chart-card"><canvas id="lossChart"></canvas></div>
-            <div class="chart-card"><canvas id="ewmaChart"></canvas></div>
+            <div class="chart-card" style="width:100%">
+                <h3>Unified Network Metrics</h3>
+                <div style="margin-bottom:10px; color:#00f7ff; font-size:13px">
+                    <span style="display:inline-block;width:14px;height:8px;background:#00f7ff;margin-right:6px"></span> Throughput (Mbps)
+                    <span style="display:inline-block;width:14px;height:8px;background:#ff9f00;margin-left:12px;margin-right:6px"></span> Latency (ms)
+                    <span style="display:inline-block;width:14px;height:8px;background:#ff004c;margin-left:12px;margin-right:6px"></span> Packet Loss (%)
+                    <span style="display:inline-block;width:14px;height:8px;background:#00ff9c;margin-left:12px;margin-right:6px"></span> EWMA (%)
+                </div>
+                <canvas id="unifiedMetricsChart"></canvas>
+            </div>
         </div>
 
         <div class="chart-row">

@@ -6,11 +6,14 @@
 bash scripts/start_system.sh
 ```
 
-2) In a separate terminal start Mininet in the foreground and leave it running:
+2) In a separate terminal start Mininet for the topology you will use. For the 120-host test we typically run a linear topology (heavy on resources):
 
 ```bash
-sudo mn --topo tree,3,3 --controller=remote,ip=127.0.0.1,port=6653 --switch ovs,protocols=OpenFlow13
+# Example: 120 hosts (linear topology)
+sudo mn --topo linear,120 --controller=remote,ip=127.0.0.1,port=6653 --switch ovs,protocols=OpenFlow13
 ```
+
+Note: 120 hosts is resource intensive. Run this on a machine with sufficient CPU/RAM or use a smaller topology for demos.
 
 3) If this is the first run, activate required ONOS apps (one-time):
 

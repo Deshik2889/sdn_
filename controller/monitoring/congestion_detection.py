@@ -10,7 +10,7 @@ AUTH = ("onos", "rocks")
 # ==============================
 # LINK & THRESHOLDS
 # ==============================
-LINK_CAPACITY_BPS = 1_000_000_000  # 1 Gbps
+LINK_CAPACITY_BPS = 100_000_000  # 100 Mbps (consistent with dashboard)
 U_HIGH = 0.8        # 80% utilization
 U_MID = 0.6         # 60% utilization
 G_HIGH = 0.08       # growth rate threshold

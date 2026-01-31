@@ -10,7 +10,7 @@ AUTH = ("onos", "rocks")
 # ==============================
 # PARAMETERS
 # ==============================
-LINK_CAPACITY_BPS = 1_000_000_000
+LINK_CAPACITY_BPS = 100_000_000
 ALPHA = 0.6
 PRED_THRESHOLD = 0.75
 CHECK_INTERVAL = 5

@@ -10,7 +10,7 @@ AUTH = ("onos", "rocks")
 # ==============================
 # PARAMETERS
 # ==============================
-LINK_CAPACITY_BPS = 1_000_000_000  # 1 Gbps
+LINK_CAPACITY_BPS = 100_000_000  # 100 Mbps (consistent with dashboard)
 MIN_TRAFFIC_BPS = 1_000_000        # 1 Mbps filter
 
 ALPHA = 0.6                        # EWMA smoothing factor

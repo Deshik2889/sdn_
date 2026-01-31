@@ -3,6 +3,7 @@ function createChart(id, datasetsConfig) {
         label: cfg.label,
         data: [],
         borderColor: cfg.color,
+        yAxisID: cfg.yAxisID || 'y',
         borderWidth: cfg.borderWidth || 2,
         borderDash: cfg.borderDash || [],
         pointStyle: cfg.pointStyle || 'circle',
@@ -29,21 +30,77 @@ function createChart(id, datasetsConfig) {
     });
 }
 
-const tChart = createChart("throughputChart", [
-    {label: 'Baseline Throughput', color: '#00f7ff'},
-    {label: 'Proposed Throughput', color: '#00ff9c', borderDash: [6,4], borderWidth: 3, pointStyle: 'rect'}
+// Unified metrics chart with baseline/proposed datasets for clearer comparison
+const unifiedChart = createChart("unifiedMetricsChart", [
+    {label: 'Throughput (Baseline, Mbps)', color: '#00d0ff', borderDash: [6,4], yAxisID: 'y'},
+    {label: 'Throughput (Proposed, Mbps)', color: '#00a0ff', borderDash: [], yAxisID: 'y'},
+    {label: 'Latency (Baseline, ms)', color: '#ffbf6b', borderDash: [6,4], yAxisID: 'y1'},
+    {label: 'Latency (Proposed, ms)', color: '#ff9f00', borderDash: [], yAxisID: 'y1'},
+    {label: 'Packet Loss (Baseline, %)', color: '#ff7a96', borderDash: [6,4], yAxisID: 'y1'},
+    {label: 'Packet Loss (Proposed, %)', color: '#ff004c', borderDash: [], yAxisID: 'y1'},
+    {label: 'EWMA (%)', color: '#00ff9c', borderDash: [], yAxisID: 'ewma', borderWidth: 3}
 ]);
-const lChart = createChart("latencyChart", [
-    {label: 'Baseline Latency', color: '#ff9f00'},
-    {label: 'Proposed Latency', color: '#ffd86b'}
-]);
-const pChart = createChart("lossChart", [
-    {label: 'Baseline Packet Loss', color: '#ff004c'},
-    {label: 'Proposed Packet Loss', color: '#ff8aa0'}
-]);
-const eChart = createChart("ewmaChart", [
-    {label: 'EWMA Utilization (%)', color: '#00ff9c'}
-]);
+
+// Configure unified chart with dual Y-axes
+unifiedChart.options.scales = {
+    x: { ticks: { color: '#00f7ff' } },
+    y: { 
+        type: 'linear',
+        position: 'left',
+        ticks: { color: '#00f7ff' },
+        title: { display: true, text: 'Throughput (Mbps)', color: '#00f7ff' }
+    },
+    y1: { 
+        type: 'linear',
+        position: 'right',
+        ticks: { color: '#ff9f00' },
+        title: { display: true, text: 'Latency / Packet Loss', color: '#ff9f00' },
+        grid: { drawOnChartArea: false }
+    },
+    ewma: {
+        type: 'linear',
+        position: 'right',
+        ticks: { color: '#00ff9c' },
+        title: { display: true, text: 'EWMA (%)', color: '#00ff9c' },
+        grid: { drawOnChartArea: false },
+        min: 0,
+        max: 100
+    }
+};
+unifiedChart.update();
+// track current UI mode to highlight buttons and control reroute display
+let CURRENT_MODE = 'baseline';
+
+function applyModeVisuals(mode){
+    CURRENT_MODE = mode;
+    const bBase = document.getElementById('baselineBtn');
+    const bProp = document.getElementById('proposedBtn');
+    if(bBase) bBase.classList.toggle('active', mode === 'baseline');
+    if(bProp) bProp.classList.toggle('active', mode === 'proposed');
+    // update status text immediately for clarity
+    const st = document.getElementById('status');
+    if(st) st.innerText = `${st.innerText.split('|')[0].trim()} | ${mode.toUpperCase()}`;
+}
+
+// Show/hide datasets so baseline/proposed are exclusive (EWMA stays visible)
+function setChartModeVisibility(mode){
+    // dataset order: 0:thr_base,1:thr_prop,2:lat_base,3:lat_prop,4:pl_base,5:pl_prop,6:ewma
+    if(!unifiedChart || !unifiedChart.data || !unifiedChart.data.datasets) return;
+    const ds = unifiedChart.data.datasets;
+    const showBaseline = mode === 'baseline';
+    // throughput
+    if(ds[0]) ds[0].hidden = !showBaseline;
+    if(ds[1]) ds[1].hidden = showBaseline;
+    // latency
+    if(ds[2]) ds[2].hidden = !showBaseline;
+    if(ds[3]) ds[3].hidden = showBaseline;
+    // packet loss
+    if(ds[4]) ds[4].hidden = !showBaseline;
+    if(ds[5]) ds[5].hidden = showBaseline;
+    // EWMA always visible
+    if(ds[6]) ds[6].hidden = false;
+    unifiedChart.update();
+}
 
 // New: flows chart (single dataset)
 const fChart = createChart("flowsChart", [
@@ -98,18 +155,31 @@ function updateStatus(state, mode) {
 
 // Mode switch with debounce: disable the button briefly to avoid accidental double-clicks
 function setMode(mode) {
+    console.log('Setting mode to:', mode);
     const btnId = mode === 'proposed' ? null : null; // placeholder if we want per-button behavior
     // perform mode change
-    fetch(`/api/mode/${mode}`).then(() => {
-        // temporarily disable both mode buttons for 2s
-        const btns = Array.from(document.querySelectorAll('.header .btn'))
-            .filter(b => b.innerText.trim().toLowerCase() === 'baseline' || b.innerText.trim().toLowerCase() === 'proposed');
-        btns.forEach(b => b.disabled = true);
-        setTimeout(() => btns.forEach(b => b.disabled = false), 2000);
-    }).catch(err => {
-        console.error('Failed to set mode', err);
-        alert('Failed to change mode');
-    });
+    fetch(`/api/mode/${mode}`)
+        .then(response => {
+            console.log('Mode change response:', response);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Mode changed to:', data);
+            // visually apply active state
+            applyModeVisuals(mode);
+            setChartModeVisibility(mode);
+            // temporarily disable both mode buttons for 1s to avoid double clicks
+            const btns = [document.getElementById('baselineBtn'), document.getElementById('proposedBtn')].filter(Boolean);
+            btns.forEach(b => b.disabled = true);
+            setTimeout(() => btns.forEach(b => b.disabled = false), 1000);
+        })
+        .catch(error => {
+            console.error('Error changing mode:', error);
+            alert('Error changing mode: ' + error.message);
+        });
 }
 
 let pollInterval = null;
@@ -120,12 +190,21 @@ function startPolling() {
         fetch("/api/metrics")
             .then(r => r.json())
             .then(d => {
-                update(tChart, d.throughput_baseline, d.throughput_proposed);
-                update(lChart, d.latency_baseline, d.latency_proposed);
-                update(pChart, d.packet_loss_baseline, d.packet_loss_proposed);
-                // EWMA in percent if available, otherwise fallback
-                const ew = d.ewma_percent !== undefined ? d.ewma_percent : (d.ewma ? d.ewma * 100 : 0);
-                update(eChart, ew);
+                console.log('Metrics data received:', d);
+                  // EWMA in percent if available, otherwise fallback
+                  const ew = d.ewma_percent !== undefined ? d.ewma_percent : (d.ewma ? d.ewma * 100 : 0);
+
+                  // Update unified chart with baseline/proposed series order matching initialization
+                  // [throughput_base, throughput_prop, latency_base, latency_prop, pl_base, pl_prop, ewma]
+                  update(unifiedChart,
+                      d.throughput_baseline || d.throughput || 0,
+                      d.throughput_proposed || d.throughput || 0,
+                      d.latency_baseline || 0,
+                      d.latency_proposed || 0,
+                      d.packet_loss_baseline || 0,
+                      d.packet_loss_proposed || 0,
+                      ew);
+                
                 update(fChart, d.flows || 0);
                 // update top ports bar chart
                 const tp = d.top_ports || [];
@@ -133,6 +212,11 @@ function startPolling() {
                 const vals = tp.map(x => Math.round(x.utilization * 100));
                 updateBar(topPortsChart, labels, vals);
                 updateStatus(d.state, d.mode);
+                // reflect backend mode in UI visuals (in case changed elsewhere)
+                if(d.mode) applyModeVisuals(d.mode);
+            })
+            .catch(err => {
+                console.log('Metrics fetch failed:', err);
             });
     }, 2000);
 }
@@ -145,20 +229,69 @@ function stopPolling() {
 
 // Start/stop traffic via backend and toggle polling
 function startTraffic() {
-    fetch('/api/start-traffic')
-        .then(() => {
+    console.log('Starting traffic...');
+    fetch('/api/start-traffic', { 
+        method: 'GET',
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+    })
+        .then(response => {
+            console.log('Start traffic response:', response);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Traffic started:', data);
             startPolling();
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
+        })
+        .catch(error => {
+            console.error('Error starting traffic:', error);
+            alert('Error starting traffic: ' + error.message);
         });
 }
 
 function stopTraffic() {
+    console.log('Stopping traffic...');
     fetch('/api/stop')
-        .then(() => {
+        .then(response => {
+            console.log('Stop traffic response:', response);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Traffic stopped:', data);
             stopPolling();
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
+        })
+        .catch(error => {
+            console.error('Error stopping traffic:', error);
+            alert('Error stopping traffic: ' + error.message);
+        });
+}
+
+function congest() {
+    console.log('Creating congestion...');
+    fetch('/api/congest')
+        .then(response => {
+            console.log('Congest response:', response);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Congestion created:', data);
+            alert('Congestion created successfully');
+        })
+        .catch(error => {
+            console.error('Error creating congestion:', error);
+            alert('Error creating congestion: ' + error.message);
         });
 }
 
@@ -181,10 +314,9 @@ window.addEventListener('load', () => {
 
 function exportCharts() {
     const items = [
-        {chart: tChart, name: 'throughput.png'},
-        {chart: lChart, name: 'latency.png'},
-        {chart: pChart, name: 'packet_loss.png'},
-        {chart: eChart, name: 'ewma.png'}
+        {chart: unifiedChart, name: 'unified_metrics.png'},
+        {chart: fChart, name: 'flows.png'},
+        {chart: topPortsChart, name: 'top_ports.png'}
     ];
 
     const promises = items.map(it => new Promise(resolve => {
@@ -232,6 +364,7 @@ function refreshTopology() {
     fetch('/api/topology')
         .then(r => r.json())
         .then(j => {
+            console.log('Topology data received:', j);
             // nodes
             const nodes = (j.nodes || []).map(n => ({ id: n.id, label: n.label }));
             topologyNodes.update(nodes);
@@ -248,17 +381,24 @@ function refreshTopology() {
                     id: l.id,
                     from: l.from,
                     to: l.to,
-                    label: `${Math.round(l.utilization*100)}%`,
+                    // show a clearer label: one decimal percent, or a CONGESTED badge
+                    // If rerouted, show REROUTED label and arrow; otherwise show percent or CONGESTED
+                    label: rer ? `REROUTED ${(l.utilization * 100).toFixed(1)}%` : (l.congested ? 'CONGESTED' : `${(l.utilization * 100).toFixed(1)}%`),
+                    // hover tooltip with exact utilization and state
+                    title: `${rer ? 'REROUTED - ' : ''}Utilization: ${(l.utilization * 100).toFixed(1)}%${l.congested ? ' (CONGESTED)' : ''}`,
                     color: color,
-                    width: rer ? 4 : (l.congested ? 3 : 2)
+                    width: rer ? 5 : (l.congested ? 3 : 2),
+                    dashes: rer ? false : (l.congested ? true : false),
+                    arrows: rer ? 'to' : '',
+                    smooth: { enabled: true }
                 };
             });
-
-            // replace edges dataset
-            topologyEdges.clear();
-            topologyEdges.add(edges);
+            topologyEdges.update(edges);
         })
-        .catch(err => { /* silently ignore until topology available */ });
+        .catch(err => { 
+            console.log('Topology fetch failed:', err);
+            /* silently ignore until topology available */ 
+        });
 }
 
 // start topology on load
@@ -266,4 +406,7 @@ window.addEventListener('load', () => {
     initTopology();
     // refresh every 2s
     setInterval(refreshTopology, 2000);
+    // apply initial UI mode visuals now that chart exists
+    applyModeVisuals(CURRENT_MODE);
+    setChartModeVisibility(CURRENT_MODE);
 });
