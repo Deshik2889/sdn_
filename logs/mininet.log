@@ -1,26 +1,15 @@
 *** Creating network
 *** Adding controller
 *** Adding hosts:
-h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 
+h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 h28 h29 h30 h31 h32 h33 h34 h35 h36 h37 h38 h39 h40 h41 h42 h43 h44 h45 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 
 *** Adding switches:
-s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 
+s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 s20 s21 
 *** Adding links:
-(s1, s2) (s1, s6) (s1, s10) (s2, s3) (s2, s4) (s2, s5) (s3, h1) (s3, h2) (s3, h3) (s4, h4) (s4, h5) (s4, h6) (s5, h7) (s5, h8) (s5, h9) (s6, s7) (s6, s8) (s6, s9) (s7, h10) (s7, h11) (s7, h12) (s8, h13) (s8, h14) (s8, h15) (s9, h16) (s9, h17) (s9, h18) (s10, s11) (s10, s12) (s10, s13) (s11, h19) (s11, h20) (s11, h21) (s12, h22) (s12, h23) (s12, h24) (s13, h25) (s13, h26) (s13, h27) 
+(s1, s2) (s1, s7) (s1, s12) (s1, s17) (s2, s3) (s2, s4) (s2, s5) (s2, s6) (s3, h1) (s3, h2) (s3, h3) (s3, h4) (s4, h5) (s4, h6) (s4, h7) (s4, h8) (s5, h9) (s5, h10) (s5, h11) (s5, h12) (s6, h13) (s6, h14) (s6, h15) (s6, h16) (s7, s8) (s7, s9) (s7, s10) (s7, s11) (s8, h17) (s8, h18) (s8, h19) (s8, h20) (s9, h21) (s9, h22) (s9, h23) (s9, h24) (s10, h25) (s10, h26) (s10, h27) (s10, h28) (s11, h29) (s11, h30) (s11, h31) (s11, h32) (s12, s13) (s12, s14) (s12, s15) (s12, s16) (s13, h33) (s13, h34) (s13, h35) (s13, h36) (s14, h37) (s14, h38) (s14, h39) (s14, h40) (s15, h41) (s15, h42) (s15, h43) (s15, h44) (s16, h45) (s16, h46) (s16, h47) (s16, h48) (s17, s18) (s17, s19) (s17, s20) (s17, s21) (s18, h49) (s18, h50) (s18, h51) (s18, h52) (s19, h53) (s19, h54) (s19, h55) (s19, h56) (s20, h57) (s20, h58) (s20, h59) (s20, h60) (s21, h61) (s21, h62) (s21, h63) (s21, h64) 
 *** Configuring hosts
-h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 
+h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 h28 h29 h30 h31 h32 h33 h34 h35 h36 h37 h38 h39 h40 h41 h42 h43 h44 h45 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 
 *** Starting controller
 c0 
-*** Starting 13 switches
-s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 ...
+*** Starting 21 switches
+s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 s20 s21 ...
 *** Starting CLI:
-mininet> 
-*** Stopping 1 controllers
-c0 
-*** Stopping 39 links
-.......................................
-*** Stopping 13 switches
-s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 
-*** Stopping 27 hosts
-h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 
-*** Done
-completed in 3.411 seconds

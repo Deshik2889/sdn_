@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>SDN CONTROL CENTER</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
@@ -30,6 +31,16 @@
     </aside>
 
     <section class="content">
+        <div class="chart-row">
+            <div class="chart-card" style="width:100%">
+                <h3>Network Topology</h3>
+                <div id="topology" style="height:420px; width:100%; background:#071219; border-radius:8px;"></div>
+                <div style="margin-top:6px; color:#00f7ff; font-size:13px">
+                    <span style="display:inline-block;width:14px;height:8px;background:#ff4d4d;margin-right:6px"></span> Congested
+                    <span style="display:inline-block;width:14px;height:8px;background:#4da6ff;margin-left:12px;margin-right:6px"></span> Rerouted
+                </div>
+            </div>
+        </div>
         <div class="chart-row">
             <div class="chart-card"><canvas id="throughputChart"></canvas></div>
             <div class="chart-card"><canvas id="latencyChart"></canvas></div>

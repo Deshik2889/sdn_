@@ -58,19 +58,15 @@ echo "✅ ONOS is up"
 echo "ℹ️  NOTE: ONOS apps (openflow, fwd) must be activated ONCE via Karaf"
 
 # ==============================
-# START MININET (≈120 NODES)
-# tree,3,5 → 1 + 3 + 15 switches = 19 switches
-# hosts = 3^5 = 243 hosts (you can reduce if needed)
+# MININET (manual start)
+# The script does not start Mininet automatically; start it manually using
+# the printed command below so you can control when the topology launches.
 # ==============================
-echo "🌐 Starting large Mininet topology..."
-
-sudo mn \
-  --topo $TOPO_ARG \
-  --controller=remote,ip=$CONTROLLER_IP,port=$OF_PORT \
-  --switch ovs,protocols=OpenFlow13 \
-  > "$LOG_DIR/mininet.log" 2>&1 &
-
-sleep 12
+echo "🌐 Mininet must be started manually for this host. Run the following command in a separate terminal:"
+echo
+echo "sudo mn --topo ${TOPO_ARG} --controller=remote,ip=${CONTROLLER_IP},port=${OF_PORT} --switch ovs,protocols=OpenFlow13 > ${LOG_DIR}/mininet.log 2>&1 &"
+echo
+echo "(After starting Mininet, give it a few seconds to come up before proceeding.)"
 
 # ==============================
 # START MODULE 4

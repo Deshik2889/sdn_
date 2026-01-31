@@ -208,3 +208,62 @@ function exportCharts() {
             });
     });
 }
+
+// -------------------- Topology viz using vis-network --------------------
+let topologyNetwork = null;
+let topologyNodes = null;
+let topologyEdges = null;
+
+function initTopology() {
+    const container = document.getElementById('topology');
+    topologyNodes = new vis.DataSet();
+    topologyEdges = new vis.DataSet();
+    const data = { nodes: topologyNodes, edges: topologyEdges };
+    const options = {
+        nodes: { color: { background: '#072027', border: '#00f7ff' }, font: { color: '#00f7ff' } },
+        edges: { color: '#888', width: 2, smooth: true },
+        physics: { stabilization: false, barnesHut: { gravitationalConstant: -3000 } },
+        interaction: { hover: true }
+    };
+    topologyNetwork = new vis.Network(container, data, options);
+}
+
+function refreshTopology() {
+    fetch('/api/topology')
+        .then(r => r.json())
+        .then(j => {
+            // nodes
+            const nodes = (j.nodes || []).map(n => ({ id: n.id, label: n.label }));
+            topologyNodes.update(nodes);
+
+            // edges
+            const edges = (j.links || []).map(l => {
+                // default color
+                let color = { color: '#888' };
+                if (l.congested) color = { color: '#ff4d4d' };
+                // if rerouted_links include link id, mark blue
+                const rer = (j.rerouted_links || []).includes(l.id);
+                if (rer) color = { color: '#4da6ff' };
+                return {
+                    id: l.id,
+                    from: l.from,
+                    to: l.to,
+                    label: `${Math.round(l.utilization*100)}%`,
+                    color: color,
+                    width: rer ? 4 : (l.congested ? 3 : 2)
+                };
+            });
+
+            // replace edges dataset
+            topologyEdges.clear();
+            topologyEdges.add(edges);
+        })
+        .catch(err => { /* silently ignore until topology available */ });
+}
+
+// start topology on load
+window.addEventListener('load', () => {
+    initTopology();
+    // refresh every 2s
+    setInterval(refreshTopology, 2000);
+});

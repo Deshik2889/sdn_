@@ -61,7 +61,8 @@ def install_flow(device_id, in_port, out_port):
         print(f"[FLOW] Installed flow on {device_id}")
         # Notify dashboard that a reroute occurred so it can measure post-reroute throughput
         try:
-            requests.post("http://127.0.0.1:5000/api/reroute", json={"device": device_id}, timeout=1)
+            payload = {"device": device_id, "in_port": in_port, "out_port": out_port}
+            requests.post("http://127.0.0.1:5000/api/reroute", json=payload, timeout=1)
         except Exception:
             pass
     else:

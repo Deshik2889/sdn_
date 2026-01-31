@@ -28,6 +28,11 @@ prev_time = time.time()
 # store previous per-port cumulative bytes
 prev_port_bytes = {}
 
+# topology and reroute state
+rerouted_links = []
+
+# congestion threshold for per-link utilization
+CONGESTION_THRESHOLD = 0.7
 # Reroute measurement state: when a reroute happens the rerouter will POST
 # to /api/reroute and we will measure real throughput for a short window
 # to report `throughput_proposed` as the measured value instead of a model.
@@ -163,6 +168,80 @@ def get_live_metrics():
     }
 
 
+def get_topology():
+    """Return nodes and links with utilization and congested flags."""
+    nodes = []
+    links = []
+    try:
+        # devices
+        r = requests.get(f"{ONOS_URL}/devices", auth=AUTH, timeout=2)
+        devs = r.json().get('devices', []) if isinstance(r.json(), dict) else []
+        for d in devs:
+            nodes.append({"id": d.get('id'), "label": d.get('id')})
+    except Exception:
+        pass
+
+    # collect current port stats to compute per-port rate
+    per_port_rate = {}
+    try:
+        r = requests.get(f"{ONOS_URL}/statistics/ports", auth=AUTH, timeout=2)
+        stats = r.json().get('statistics', [])
+        now = time.time()
+        for dev in stats:
+            did = dev.get('device')
+            for p in dev.get('ports', []):
+                port_no = p.get('port')
+                key = f"{did}:{port_no}"
+                bytes_sent = p.get('bytesSent', 0)
+                prev_b = prev_port_bytes.get(key, 0)
+                delta_b = max(bytes_sent - prev_b, 0)
+                # approximate rate bps (since get_topology might be called frequently, guard dt)
+                per_port_rate[key] = delta_b * 8
+                prev_port_bytes[key] = bytes_sent
+    except Exception:
+        pass
+
+    # links
+    try:
+        r = requests.get(f"{ONOS_URL}/links", auth=AUTH, timeout=2)
+        lks = r.json().get('links', []) if isinstance(r.json(), dict) else r.json()
+        for l in lks:
+            src = l.get('src', {})
+            dst = l.get('dst', {})
+            src_device = src.get('device')
+            src_port = src.get('port')
+            dst_device = dst.get('device')
+            dst_port = dst.get('port')
+            link_id = f"{src_device}:{src_port}-{dst_device}:{dst_port}"
+            # rate from src port
+            rate_bps = per_port_rate.get(f"{src_device}:{src_port}", 0)
+            util = 0.0
+            try:
+                util = rate_bps / LINK_CAPACITY_BPS
+            except Exception:
+                util = 0.0
+            congested = util >= CONGESTION_THRESHOLD
+            links.append({
+                "id": link_id,
+                "from": src_device,
+                "to": dst_device,
+                "src_port": src_port,
+                "dst_port": dst_port,
+                "rate_bps": int(rate_bps),
+                "utilization": round(util, 3),
+                "congested": congested
+            })
+    except Exception:
+        pass
+
+    return {"nodes": nodes, "links": links, "rerouted_links": list(rerouted_links)}
+
+
+@app.route('/api/topology')
+def topology():
+    return jsonify(get_topology())
+
+
 @app.route('/api/traffic-status')
 def traffic_status():
     # Return whether the backend has started a traffic process
@@ -275,6 +354,21 @@ def reroute_notify():
         proposed_samples = []
         reroute_event_time = time.time()
         measuring_reroute = True
+        # also update rerouted_links for topology highlighting if caller provided ports
+        try:
+            data = request.get_json() or {}
+            dev = data.get('device')
+            in_p = data.get('in_port')
+            out_p = data.get('out_port')
+            if dev and in_p and out_p:
+                # create simple link keys used by topology: src->dst on same device
+                lk1 = f"{dev}:{in_p}-{dev}:{out_p}"
+                # prepend to rerouted_links list (keep small)
+                rerouted_links.insert(0, lk1)
+                # keep only recent few
+                rerouted_links[:] = rerouted_links[:10]
+        except Exception:
+            pass
         return jsonify({"status": "measuring", "started": reroute_event_time})
     except Exception:
         return jsonify({"status": "error"}), 500
