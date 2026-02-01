@@ -184,6 +184,9 @@ function setMode(mode) {
 
 let pollInterval = null;
 
+// track congestion marker datasets so we can clear them on stop
+let congestionMarkersCount = 0;
+
 function startPolling() {
     if (pollInterval) return;
     pollInterval = setInterval(() => {
@@ -268,6 +271,9 @@ function stopTraffic() {
             stopPolling();
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
+            // Keep congestion markers visible after stopping so the graph shows
+            // where congestion was triggered during the run. Markers persist
+            // until the page is refreshed or the user manually exports/clears charts.
         })
         .catch(error => {
             console.error('Error stopping traffic:', error);
@@ -288,6 +294,13 @@ function congest() {
         .then(data => {
             console.log('Congestion created:', data);
             alert('Congestion created successfully');
+            try {
+                // add a vertical marker at the current time to the unified chart
+                const now = new Date();
+                addCongestionMarker(now);
+            } catch (e) {
+                console.error('Failed to add congestion marker:', e);
+            }
         })
         .catch(error => {
             console.error('Error creating congestion:', error);
@@ -299,6 +312,98 @@ function updateBar(chart, labels, values) {
     chart.data.labels = labels;
     chart.data.datasets[0].data = values;
     chart.update();
+}
+
+// Add a vertical dashed line marker at a given timestamp on the unified chart
+function addCongestionMarker(time) {
+    if (!unifiedChart || !unifiedChart.scales || !unifiedChart.scales.y) return;
+    const yScale = unifiedChart.scales.y;
+    const yMin = (typeof yScale.min === 'number') ? yScale.min : (Math.min(...(unifiedChart.data.datasets[0].data || [0])) || 0);
+    const yMax = (typeof yScale.max === 'number') ? yScale.max : (Math.max(...(unifiedChart.data.datasets[1].data || [1])) || 1);
+
+    const timeLabel = (time instanceof Date) ? time.toLocaleTimeString() : String(time);
+    const markerDataset = {
+        label: `CONGEST ${++congestionMarkersCount}`,
+        data: [
+            { x: timeLabel, y: yMin },
+            { x: timeLabel, y: yMax }
+        ],
+        borderColor: 'rgba(255,60,60,0.95)',
+        borderWidth: 2,
+        pointRadius: 0,
+        borderDash: [6, 4],
+        fill: false,
+        tension: 0,
+        yAxisID: 'y',
+        order: 999,
+        // custom flag so we can remove these later
+        isMarker: true
+    };
+
+    unifiedChart.data.datasets.push(markerDataset);
+    unifiedChart.update();
+
+    // Also add markers on flows and top ports charts to align the timestamp
+    try {
+        const timeLabel = (time instanceof Date) ? time.toLocaleTimeString() : String(time);
+        // flows chart marker
+        if (fChart && fChart.data) {
+            const fMin = 0;
+            const fMax = Math.max(...(fChart.data.datasets[0].data || [1]));
+            const fMarker = {
+                label: markerDataset.label,
+                data: [{ x: timeLabel, y: fMin }, { x: timeLabel, y: fMax }],
+                borderColor: markerDataset.borderColor,
+                borderWidth: markerDataset.borderWidth,
+                pointRadius: 0,
+                borderDash: markerDataset.borderDash,
+                fill: false,
+                tension: 0,
+                type: 'line',
+                yAxisID: undefined,
+                isMarker: true,
+                order: 999
+            };
+            fChart.data.datasets.push(fMarker);
+            fChart.update();
+        }
+
+        // top ports chart marker (bar chart) - add a line dataset overlay
+        if (topPortsChart && topPortsChart.data) {
+            const tpMin = 0;
+            const tpMax = Math.max(...(topPortsChart.data.datasets[0].data || [1]));
+            const tpMarker = {
+                label: markerDataset.label,
+                data: [{ x: timeLabel, y: tpMin }, { x: timeLabel, y: tpMax }],
+                borderColor: markerDataset.borderColor,
+                borderWidth: markerDataset.borderWidth,
+                pointRadius: 0,
+                borderDash: markerDataset.borderDash,
+                fill: false,
+                tension: 0,
+                type: 'line',
+                isMarker: true,
+                order: 999
+            };
+            topPortsChart.data.datasets.push(tpMarker);
+            topPortsChart.update();
+        }
+    } catch (e) {
+        console.error('Failed to add markers to other charts:', e);
+    }
+}
+
+function clearMarkers() {
+    try {
+        [unifiedChart, fChart, topPortsChart].forEach(ch => {
+            if (!ch || !ch.data || !ch.data.datasets) return;
+            ch.data.datasets = ch.data.datasets.filter(ds => !ds.isMarker);
+            ch.update();
+        });
+        congestionMarkersCount = 0;
+    } catch (e) {
+        console.error('Failed to clear markers:', e);
+    }
 }
 
 // On load: if traffic already running, start polling automatically

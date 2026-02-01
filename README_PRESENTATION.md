@@ -24,6 +24,7 @@ sudo mn --topo linear,120 --controller=remote,ip=127.0.0.1,port=6653 --switch ov
   - Rerouted links (blue arrows / thicker lines) and labels.
   - Throughput/latency/packet-loss series: `Baseline` (dashed) vs `Proposed` (solid). Note the EWMA indicator and how it moves.
   - Explain the demo spikes: they are synthetic visualization boosts added to make differences visible during short live demos — clarify they make the effect easier to observe while the underlying algorithm is the same.
+  - When you click `Congest` the dashboard adds a vertical red dashed marker labelled `CONGEST` across the metrics charts (Unified, Flows, Top-Ports). This marker shows the exact timestamp where congestion was injected. Markers persist after `Stop` so you can examine results; use `Clear Markers` to remove them before a new run.
 - **4 — Explain internals (1–2m):** Briefly open core files and point to:
   - `controller/monitoring/congestion_detection.py` and `controller/monitoring/ewma_prediction.py` — prediction logic and EWMA.
   - `controller/routing/reroute.py` — how reroutes are computed and applied.
