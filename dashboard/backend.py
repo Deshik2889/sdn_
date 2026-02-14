@@ -93,9 +93,9 @@ def get_live_metrics():
         util = rate_bps / LINK_CAPACITY_BPS
         per_port_util.append((key, util, rate_bps))
 
-    # store current port utilizations for topology
+    # store current port utilizations for topology (store both fraction and rate)
     global current_port_utilizations
-    current_port_utilizations = {key: util for key, util, _ in per_port_util}
+    current_port_utilizations = {key: {"util": util, "rate_bps": rate_bps} for key, util, rate_bps in per_port_util}
 
     # top-5 ports by utilization
     per_port_util.sort(key=lambda x: x[1], reverse=True)
@@ -229,15 +229,23 @@ def get_topology():
             # get utilization from port statistics
             src_port_key = f"{src.get('device')}:{src.get('port')}"
             dst_port_key = f"{dst.get('device')}:{dst.get('port')}"
-            src_util = current_port_utilizations.get(src_port_key, 0.0)
-            dst_util = current_port_utilizations.get(dst_port_key, 0.0)
+            # current_port_utilizations stores objects with util and rate_bps
+            src_info = current_port_utilizations.get(src_port_key, {"util": 0.0, "rate_bps": 0})
+            dst_info = current_port_utilizations.get(dst_port_key, {"util": 0.0, "rate_bps": 0})
+            src_util = src_info.get("util", 0.0)
+            dst_util = dst_info.get("util", 0.0)
             link_utilization = max(src_util, dst_util)  # use max of both ports
+            # estimate link rate in Mbps for clearer UI display
+            src_rate_mbps = src_info.get("rate_bps", 0) / 1e6
+            dst_rate_mbps = dst_info.get("rate_bps", 0) / 1e6
+            link_rate_mbps = max(src_rate_mbps, dst_rate_mbps)
             
             links.append({
                 "id": link_id,
                 "from": src.get('device'),
                 "to": dst.get('device'),
                 "utilization": link_utilization,
+                "rate_mbps": round(link_rate_mbps, 3),
                 "congested": link_utilization > 0.8 or (congestion_active and link_id in [
                     "of:0000000000000003:4-of:0000000000000002:1",  # h3 -> s2
                     "of:0000000000000002:3-of:0000000000000005:4",  # s2 -> s5  

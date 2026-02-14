@@ -482,15 +482,21 @@ function refreshTopology() {
                 // if rerouted_links include link id, mark blue
                 const rer = (j.rerouted_links || []).includes(l.id);
                 if (rer) color = { color: '#4da6ff' };
+                // prefer showing Mbps if available (more visible than tiny fractions)
+                const utilLabel = (l.rate_mbps !== undefined && l.rate_mbps > 0.01)
+                    ? `${l.rate_mbps.toFixed(2)} Mbps`
+                    : `${(l.utilization * 100).toFixed(2)}%`;
+                const titleUtil = (l.rate_mbps !== undefined && l.rate_mbps > 0.01)
+                    ? `${l.rate_mbps.toFixed(3)} Mbps`
+                    : `${(l.utilization * 100).toFixed(3)}%`;
                 return {
                     id: l.id,
                     from: l.from,
                     to: l.to,
-                    // show a clearer label: one decimal percent, or a CONGESTED badge
-                    // If rerouted, show REROUTED label and arrow; otherwise show percent or CONGESTED
-                    label: rer ? `REROUTED ${(l.utilization * 100).toFixed(1)}%` : (l.congested ? 'CONGESTED' : `${(l.utilization * 100).toFixed(1)}%`),
+                    // show a clearer label: Mbps when available, otherwise percent
+                    label: rer ? `REROUTED ${utilLabel}` : (l.congested ? 'CONGESTED' : utilLabel),
                     // hover tooltip with exact utilization and state
-                    title: `${rer ? 'REROUTED - ' : ''}Utilization: ${(l.utilization * 100).toFixed(1)}%${l.congested ? ' (CONGESTED)' : ''}`,
+                    title: `${rer ? 'REROUTED - ' : ''}Utilization: ${titleUtil}${l.congested ? ' (CONGESTED)' : ''}`,
                     color: color,
                     width: rer ? 5 : (l.congested ? 3 : 2),
                     dashes: rer ? false : (l.congested ? true : false),
