@@ -130,7 +130,7 @@ function createBarChart(id, label, color) {
     });
 }
 
-const topPortsChart = createBarChart('topPortsChart', 'Top Ports Utilization', '#ff7a7a');
+const topPortsChart = createBarChart('topPortsChart', 'Top Ports Rate (Mbps)', '#ff7a7a');
 
 function update(chart, ...values) {
     chart.data.labels.push(new Date().toLocaleTimeString());
@@ -214,7 +214,8 @@ function startPolling() {
                 // update top ports bar chart
                 const tp = d.top_ports || [];
                 const labels = tp.map(x => x.port);
-                const vals = tp.map(x => Math.round(x.utilization * 100));
+                // display measured rate in Mbps (backend provides rate_bps)
+                const vals = tp.map(x => parseFloat(((x.rate_bps||0)/1e6).toFixed(2)));
                 updateBar(topPortsChart, labels, vals);
                 updateStatus(d.state, d.mode);
                 // reflect backend mode in UI visuals (in case changed elsewhere)
@@ -337,7 +338,7 @@ function addCongestionMarker(time) {
 
     const timeLabel = (time instanceof Date) ? time.toLocaleTimeString() : String(time);
     const markerDataset = {
-        label: `CONGEST ${++congestionMarkersCount}`,
+        label: '',
         data: [
             { x: timeLabel, y: yMin },
             { x: timeLabel, y: yMax }
@@ -353,7 +354,7 @@ function addCongestionMarker(time) {
         // custom flag so we can remove these later
         isMarker: true
     };
-
+    congestionMarkersCount++;
     unifiedChart.data.datasets.push(markerDataset);
     unifiedChart.update();
 
@@ -365,7 +366,7 @@ function addCongestionMarker(time) {
             const fMin = 0;
             const fMax = Math.max(...(fChart.data.datasets[0].data || [1]));
             const fMarker = {
-                label: markerDataset.label,
+                label: '',
                 data: [{ x: timeLabel, y: fMin }, { x: timeLabel, y: fMax }],
                 borderColor: markerDataset.borderColor,
                 borderWidth: markerDataset.borderWidth,
@@ -387,7 +388,7 @@ function addCongestionMarker(time) {
             const tpMin = 0;
             const tpMax = Math.max(...(topPortsChart.data.datasets[0].data || [1]));
             const tpMarker = {
-                label: markerDataset.label,
+                label: '',
                 data: [{ x: timeLabel, y: tpMin }, { x: timeLabel, y: tpMax }],
                 borderColor: markerDataset.borderColor,
                 borderWidth: markerDataset.borderWidth,
@@ -494,10 +495,10 @@ function refreshTopology() {
                 const rer = (j.rerouted_links || []).includes(l.id);
                 if (rer) color = { color: '#4da6ff' };
                 // prefer showing Mbps if available (more visible than tiny fractions)
-                const utilLabel = (l.rate_mbps !== undefined && l.rate_mbps > 0.01)
+                const utilLabel = (l.rate_mbps !== undefined && l.rate_mbps >= 0.001)
                     ? `${l.rate_mbps.toFixed(2)} Mbps`
                     : `${(l.utilization * 100).toFixed(2)}%`;
-                const titleUtil = (l.rate_mbps !== undefined && l.rate_mbps > 0.01)
+                const titleUtil = (l.rate_mbps !== undefined && l.rate_mbps >= 0.001)
                     ? `${l.rate_mbps.toFixed(3)} Mbps`
                     : `${(l.utilization * 100).toFixed(3)}%`;
                 return {

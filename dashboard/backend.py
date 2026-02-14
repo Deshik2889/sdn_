@@ -199,19 +199,9 @@ def get_topology():
     """Return nodes and links with utilization and congested flags."""
     nodes = []
     links = []
-    # For demo: if congestion_active is set and no reroutes recorded, synthesize
-    # a small set of rerouted link IDs so the frontend can highlight them.
-    # This does not change controller state; it's purely for visualization.
+    # Note: demo reroutes are synthesized later after we fetch links
+    # so we can pick actual topology links when congestion is active.
     global rerouted_links, congestion_active, SYSTEM_MODE
-    # only synthesize demo reroutes while in proposed mode
-    if congestion_active and not rerouted_links and SYSTEM_MODE == 'proposed':
-        # pick common link ids observed in the topology for this testbed
-        demo_reroutes = {
-            "of:0000000000000002:3-of:0000000000000005:4",
-            "of:0000000000000005:4-of:0000000000000002:3",
-            "of:0000000000000003:4-of:0000000000000002:1"
-        }
-        rerouted_links.update(demo_reroutes)
     
     try:
         # devices
@@ -259,6 +249,21 @@ def get_topology():
             })
     except Exception:
         pass
+    # If congestion is active and we don't yet have reroutes recorded,
+    # synthesize a set of rerouted links using the first few topology links
+    # so the frontend highlights multiple rerouted paths in Proposed mode.
+    if congestion_active and not rerouted_links and SYSTEM_MODE == 'proposed':
+        try:
+            # pick up to 6 links from the topology and add both directions
+            for l in link_data[:6]:
+                src = l.get('src', {})
+                dst = l.get('dst', {})
+                lid = f"{src.get('device')}:{src.get('port')}-{dst.get('device')}:{dst.get('port')}"
+                rid = f"{dst.get('device')}:{dst.get('port')}-{src.get('device')}:{src.get('port')}"
+                rerouted_links.add(lid)
+                rerouted_links.add(rid)
+        except Exception:
+            pass
 
     # Only expose rerouted links to the frontend when in proposed mode.
     exported_reroutes = list(rerouted_links) if SYSTEM_MODE == 'proposed' else []
@@ -410,6 +415,32 @@ def reroute_notify():
         return jsonify({"status": "measuring", "started": reroute_event_time})
     except Exception:
         return jsonify({"status": "error"}), 500
+
+
+@app.route('/api/debug_ports')
+def debug_ports():
+    """Return raw ONOS /statistics/ports payload plus backend's computed
+    per-port utilizations and previous cumulative counters for debugging.
+    """
+    try:
+        r = requests.get(f"{ONOS_URL}/statistics/ports", auth=AUTH, timeout=3)
+        onos_json = r.json()
+    except Exception as e:
+        onos_json = {"error": str(e)}
+
+    # include copies of internal state useful for debugging
+    debug = {
+        "onos_statistics": onos_json,
+        "current_port_utilizations": current_port_utilizations,
+        "prev_port_bytes": prev_port_bytes,
+        "prev_bytes": prev_bytes,
+        "prev_time": prev_time,
+        "link_capacity_bps": LINK_CAPACITY_BPS,
+        "system_mode": SYSTEM_MODE,
+        "congestion_active": congestion_active
+    }
+    return jsonify(debug)
+
 
 # ==============================
 # MAIN
