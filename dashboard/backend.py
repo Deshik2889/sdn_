@@ -52,6 +52,7 @@ congestion_active = False
 def get_live_metrics():
     global prev_ewma, prev_bytes, prev_time
     global prev_port_bytes
+    global congestion_active, SYSTEM_MODE, current_port_utilizations
 
     r = requests.get(f"{ONOS_URL}/statistics/ports", auth=AUTH, timeout=2)
     stats = r.json().get("statistics", [])
@@ -94,7 +95,6 @@ def get_live_metrics():
         per_port_util.append((key, util, rate_bps))
 
     # store current port utilizations for topology (store both fraction and rate)
-    global current_port_utilizations
     current_port_utilizations = {key: {"util": util, "rate_bps": rate_bps} for key, util, rate_bps in per_port_util}
 
     # top-5 ports by utilization
@@ -129,7 +129,6 @@ def get_live_metrics():
         state = "SAFE"
 
     # reflect congestion state for visualization/reroute synthesis
-    global congestion_active
     congestion_active = (state == "CONGESTED" or state == "PREDICTED_CONGESTION")
 
     # For throughput overlay, return measured throughput for both modes.
@@ -160,7 +159,6 @@ def get_live_metrics():
     # mode, synthesize a visible improvement so the dashboard shows a clear
     # difference between baseline and proposed. This does NOT change
     # controller state and only affects the values returned by the API.
-    global congestion_active, SYSTEM_MODE
     try:
         if congestion_active and SYSTEM_MODE == 'proposed' and not measuring_reroute:
             # boost proposed throughput by 20% or at least +2 Mbps for visibility
