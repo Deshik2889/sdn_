@@ -186,6 +186,8 @@ let pollInterval = null;
 
 // track congestion marker datasets so we can clear them on stop
 let congestionMarkersCount = 0;
+// track last reported backend state so we can add markers on transitions
+let last_state = null;
 
 function startPolling() {
     if (pollInterval) return;
@@ -217,6 +219,18 @@ function startPolling() {
                 updateStatus(d.state, d.mode);
                 // reflect backend mode in UI visuals (in case changed elsewhere)
                 if(d.mode) applyModeVisuals(d.mode);
+                // add a congestion marker when backend state transitions to predicted/congested
+                try {
+                    if (last_state === null) last_state = d.state;
+                    if (d.state !== last_state) {
+                        if (d.state === 'PREDICTED_CONGESTION' || d.state === 'CONGESTED') {
+                            addCongestionMarker(new Date());
+                        }
+                        last_state = d.state;
+                    }
+                } catch (e) {
+                    console.error('State transition handling failed:', e);
+                }
             })
             .catch(err => {
                 console.log('Metrics fetch failed:', err);
@@ -269,8 +283,8 @@ function stopTraffic() {
         .then(data => {
             console.log('Traffic stopped:', data);
             stopPolling();
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
+            const sb = document.getElementById('stopBtn');
+            if (sb) sb.disabled = true;
             // Keep congestion markers visible after stopping so the graph shows
             // where congestion was triggered during the run. Markers persist
             // until the page is refreshed or the user manually exports/clears charts.
@@ -408,13 +422,10 @@ function clearMarkers() {
 
 // On load: if traffic already running, start polling automatically
 window.addEventListener('load', () => {
-    fetch('/api/traffic-status')
-        .then(r => r.json())
-        .then(j => {
-            if (j.running) startPolling();
-            document.getElementById('startBtn').disabled = j.running;
-            document.getElementById('stopBtn').disabled = !j.running;
-        });
+    // start polling immediately so UI reflects Mininet-driven traffic
+    try { startPolling(); } catch (e) { console.error('Failed to start polling:', e); }
+    const sb = document.getElementById('stopBtn');
+    if (sb) sb.disabled = false;
 });
 
 function exportCharts() {

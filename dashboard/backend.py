@@ -128,6 +128,10 @@ def get_live_metrics():
     else:
         state = "SAFE"
 
+    # reflect congestion state for visualization/reroute synthesis
+    global congestion_active
+    congestion_active = (state == "CONGESTED" or state == "PREDICTED_CONGESTION")
+
     # For throughput overlay, return measured throughput for both modes.
     # Do NOT model a fixed improvement here — let the system measure real
     # changes after reroutes so the dashboard reflects actual behavior.
